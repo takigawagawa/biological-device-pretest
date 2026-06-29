@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>生物感デバイス予備実験アプリ v8</title>
+<style>
+:root{--bg:#f6f3ee;--panel:#fff;--text:#242424;--muted:#666;--line:#dedbd2;--accent:#65785f;--accent2:#e8eadf;--danger:#a45050;--shadow:0 10px 28px rgba(0,0,0,.08)}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text);touch-action:manipulation}
+header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line)}
+.header-inner{max-width:1200px;margin:0 auto;padding:14px 18px;display:flex;justify-content:space-between;gap:16px;align-items:center}
+h1{font-size:18px;margin:0 0 4px}.subtitle,.small{color:var(--muted);font-size:13px}.progress{color:var(--muted);font-size:13px;text-align:right}
+main{max-width:1200px;margin:0 auto;padding:18px}.screen{display:none}.screen.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+h2{margin:0 0 14px;font-size:22px}h3{margin:0 0 10px;font-size:16px}p{line-height:1.7}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+input,textarea,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;font:inherit}
+input[type="checkbox"]{width:auto;transform:scale(1.25);margin-right:8px}
+textarea{min-height:86px;resize:vertical}
+button{border:none;border-radius:12px;padding:11px 15px;font:inherit;cursor:pointer;background:var(--accent);color:white;font-weight:700}
+button.secondary{background:var(--accent2);color:var(--text)}button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}button.danger{background:#f1e3e3;color:var(--danger)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.notice{border-left:4px solid var(--accent);padding:10px 12px;background:#f7f7f1;border-radius:10px}
+.config-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}.config-table th,.config-table td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}.config-table input,.config-table textarea{padding:8px;border-radius:10px}.config-table textarea{min-height:42px}
+.metric-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}.metric-badge{display:inline-block;border-radius:999px;padding:6px 10px;background:var(--accent2);color:var(--accent);font-size:13px;font-weight:700;white-space:nowrap}
+.instruction{background:#f4f3ed;border:1px solid #e8e4d8;border-radius:16px;padding:14px;margin-bottom:14px}
+.rating-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff;-webkit-overflow-scrolling:touch}
+.rating-grid{display:grid;min-width:760px}
+.rating-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px;min-height:58px;display:flex;align-items:center;justify-content:center;background:#fff}
+.rating-cell.header{position:sticky;top:0;z-index:3;background:#faf9f5;font-weight:800}.rating-cell.row-head{position:sticky;left:0;z-index:2;background:#faf9f5;justify-content:flex-start;font-weight:800}.rating-cell.corner{position:sticky;left:0;top:0;z-index:4;background:#efede5}
+.rating-photo{width:112px;height:88px;border-radius:14px;overflow:hidden;border:1px solid #e1ded4;background:linear-gradient(135deg,#d9d4c8,#f5f3ee)}.rating-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.rating-label{display:flex;flex-direction:column;gap:4px;line-height:1.35}.rating-label .main{font-size:14px}.rating-label .sub{font-size:12px;color:var(--muted);font-weight:500}
+.scale-box{display:flex;gap:7px;justify-content:center;flex-wrap:nowrap}.scale-box label{margin:0;color:var(--text);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}.scale-box input{width:22px;height:22px;accent-color:var(--accent)}
+.scale-caption{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:10px}
+pre{white-space:pre-wrap;word-break:break-word;background:#f4f3ed;border-radius:14px;padding:12px;max-height:340px;overflow:auto}
+.status{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef0e9;color:var(--accent);font-weight:700}
+@media(max-width:860px){.header-inner{display:block}.progress{text-align:left;margin-top:8px}.row,.row2{grid-template-columns:1fr}main{padding:12px}.panel{padding:14px}.rating-grid{min-width:680px}.rating-photo{width:92px;height:72px}}
+</style>
+</head>
+<body>
+<header><div class="header-inner"><div><h1>生物感デバイス予備実験｜5段階評価 v8</h1><div class="subtitle">複数参加者の回答を蓄積し、long / wide CSVを同時出力します。</div></div><div class="progress" id="progressText">開始前</div></div></header>
+
+<main>
+<section class="screen active" id="screenStart">
+  <div class="panel">
+    <h2>実験開始</h2>
+    <p>各デバイスについて、評価項目ごとに5段階で評価してもらいます。</p>
+    <div class="instruction">1 = まったく当てはまらない、5 = 非常に当てはまる</div>
+    <div class="row">
+      <div><label>参加者ID</label><input id="participantId" placeholder="例：P001"></div>
+      <div><label>実施日</label><input id="date" type="date"></div>
+      <div><label>提示条件</label><select id="presentationMode"><option value="photo">写真のみ</option><option value="real">実物提示あり</option><option value="photo_and_real">写真＋実物</option></select></div>
+    </div>
+    <div class="row2">
+      <div><label>候補の初期提示順</label><select id="initialOrderMode"><option value="fixed">固定順</option><option value="random" selected>参加者ごとにランダム</option></select></div>
+      <div><label>実験者メモ</label><input id="experimenterMemo" placeholder="例：写真6枚、iPad、研究室"></div>
+    </div>
+    <label><input id="autoNext" type="checkbox" checked> 評価終了後、回答を蓄積して自動で次の参加者画面へ戻る</label>
+    <div class="actions"><button onclick="startExperiment()">開始する</button><button class="secondary" onclick="goToConfig()">設定画面へ</button><button class="ghost" onclick="goToExport()">蓄積データ出力</button></div>
+  </div>
+  <div class="panel">
+    <h3>現在の蓄積状況</h3>
+    <p><span class="status" id="storedCountStart">0人分</span></p>
+    <div class="actions"><button class="secondary" onclick="downloadBothCSV()">long / wide CSVを同時保存</button><button class="secondary" onclick="downloadAllJSON()">全データJSONを保存</button><button class="danger" onclick="clearStoredData()">蓄積データを消去</button></div>
+  </div>
+</section>
+
+<section class="screen" id="screenConfig">
+  <div class="panel">
+    <h2>設定画面</h2>
+    <div class="notice small">デバイスごとに設定・記録するものは、<strong>記録用ID</strong>と<strong>写真</strong>のみです。</div>
+  </div>
+  <div class="panel">
+    <h3>デバイス設定</h3>
+    <div class="actions"><button onclick="addDevice()">デバイスを追加</button></div>
+    <div id="deviceConfigArea"></div>
+  </div>
+  <div class="panel">
+    <h3>5段階評価項目設定</h3>
+    <div class="actions"><button onclick="addRatingItem()">評価項目を追加</button></div>
+    <div id="ratingConfigArea"></div>
+  </div>
+  <div class="panel">
+    <h3>設定の保存・読込</h3>
+    <p class="small">設定JSONには写真は保存されません。写真は実施時に再アップロードしてください。</p>
+    <div class="actions"><button onclick="downloadConfigJSON()">設定JSONを保存</button><button class="secondary" onclick="document.getElementById('configFile').click()">設定JSONを読み込む</button><input id="configFile" type="file" accept="application/json,.json" style="display:none" onchange="loadConfigJSON(event)"></div>
+  </div>
+  <div class="actions"><button onclick="saveConfigAndBack()">設定を反映して開始画面へ</button><button class="secondary" onclick="backToStart()">開始画面へ戻る</button></div>
+</section>
+
+<section class="screen" id="screenRating">
+  <div class="panel">
+    <div class="metric-title"><div><h2>5段階評価</h2><div class="small">各デバイスについて、横方向に並んだ評価項目を1〜5で評価してください。</div></div><div class="metric-badge">評価入力</div></div>
+    <div class="instruction">1 = まったく当てはまらない、5 = 非常に当てはまる</div>
+    <div class="rating-wrap"><div class="rating-grid" id="ratingGrid"></div></div>
+    <div class="scale-caption"><span>1：まったく当てはまらない</span><span>5：非常に当てはまる</span></div>
+    <div class="actions"><button onclick="finishExperiment()">評価を保存</button><button class="secondary" onclick="fillMissingRatingsWithNeutral()">未入力を3で埋める</button><button class="ghost" onclick="showScreen('screenStart')">開始画面へ戻る</button></div>
+  </div>
+</section>
+
+<section class="screen" id="screenFinal">
+  <div class="panel">
+    <h2>保存完了</h2>
+    <p>この参加者の回答をブラウザ内に蓄積しました。</p>
+    <p><span class="status" id="storedCountFinal">0人分</span></p>
+    <label>自由記述</label><textarea id="freeComment" oninput="updateLastComment()"></textarea>
+    <div class="actions"><button onclick="nextParticipant()">次の参加者へ</button><button class="secondary" onclick="downloadBothCSV()">long / wide CSVを同時保存</button><button class="secondary" onclick="downloadAllJSON()">全データJSONを保存</button><button class="ghost" onclick="renderRatingGrid();showScreen('screenRating')">評価画面に戻る</button></div>
+  </div>
+  <div class="panel"><h3>最後に保存された回答</h3><pre id="preview"></pre></div>
+</section>
+
+<section class="screen" id="screenExport">
+  <div class="panel">
+    <h2>蓄積データ出力</h2>
+    <p><span class="status" id="storedCountExport">0人分</span></p>
+    <div class="actions"><button onclick="downloadBothCSV()">long / wide CSVを同時保存</button><button class="secondary" onclick="downloadLongCSV()">long CSVだけ保存</button><button class="secondary" onclick="downloadWideCSV()">wide CSVだけ保存</button><button class="secondary" onclick="downloadAllJSON()">全データJSONを保存</button><button class="danger" onclick="clearStoredData()">蓄積データを消去</button><button class="ghost" onclick="backToStart()">開始画面へ戻る</button></div>
+  </div>
+  <div class="panel"><h3>蓄積データプレビュー</h3><pre id="allPreview"></pre></div>
+</section>
+</main>
+
+<script>
+let devices=[{id:"D01"},{id:"D02"},{id:"D03"},{id:"D04"},{id:"D05"},{id:"D06"}];
+let ratingItems=[
+  {id:"R01",label:"生物らしさ",sub:"生き物のように感じる"},
+  {id:"R02",label:"呼吸らしさ",sub:"呼吸しているように見えそう・感じそう"},
+  {id:"R03",label:"親しみやすさ",sub:"親しみを感じる"},
+  {id:"R04",label:"好ましさ",sub:"好ましいと感じる"},
+  {id:"R05",label:"落ち着き",sub:"安心する・落ち着くと感じる"},
+  {id:"R06",label:"機械らしさ",sub:"人工物・機械のように感じる"},
+  {id:"R07",label:"不気味さ",sub:"不気味・違和感がある"}
+];
+let images={}, baseOrder=[], ratings={}, storedResponses=[];
+const STORAGE_KEY="biological_device_rating_app_v7_responses";
+document.getElementById("date").valueAsDate=new Date();
+loadStoredResponses();
+updateStoredCounts();
+
+function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");updateProgress();updateStoredCounts();window.scrollTo({top:0,behavior:"smooth"});}
+function updateProgress(){const t=document.getElementById("progressText");if(screenStart.classList.contains("active"))t.textContent="開始前";else if(screenConfig.classList.contains("active"))t.textContent="設定中";else if(screenRating.classList.contains("active"))t.textContent="5段階評価";else if(screenExport.classList.contains("active"))t.textContent="データ出力";else t.textContent="保存完了";}
+function goToConfig(){renderConfig();showScreen("screenConfig");} 
+function backToStart(){showScreen("screenStart");}
+function goToExport(){allPreview.textContent=JSON.stringify(storedResponses,null,2);showScreen("screenExport");}
+
+function renderConfig(){renderDeviceConfig();renderRatingConfig();}
+function renderDeviceConfig(){
+  const area=document.getElementById("deviceConfigArea");
+  if(devices.length===0){area.innerHTML='<p class="small">デバイスがありません。</p>';return;}
+  const table=document.createElement("table");table.className="config-table";
+  table.innerHTML='<thead><tr><th>記録用ID</th><th>写真</th><th>操作</th></tr></thead><tbody></tbody>';
+  const tbody=table.querySelector("tbody");
+  devices.forEach((d,idx)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><input data-device-id="${idx}" value="${escapeAttr(d.id)}"></td>
+      <td><input type="file" accept="image/*" data-file-index="${idx}"><div class="small">${images[d.id]?"写真設定済み":"未設定"}</div></td>
+      <td><button class="secondary" onclick="duplicateDevice(${idx})">複製</button> <button class="danger" onclick="removeDevice(${idx})">削除</button></td>`;
+    tbody.appendChild(tr);
+  });
+  area.innerHTML="";area.appendChild(table);
+  area.querySelectorAll("[data-device-id]").forEach(el=>el.addEventListener("input",e=>{
+    const idx=Number(e.target.dataset.deviceId), oldId=devices[idx].id, newId=e.target.value;
+    devices[idx].id=newId;
+    if(images[oldId]&&!images[newId]){images[newId]=images[oldId];delete images[oldId];}
+  }));
+  area.querySelectorAll("[data-file-index]").forEach(input=>input.addEventListener("change",e=>{
+    const file=e.target.files[0], idx=Number(e.target.dataset.fileIndex); if(!file)return;
+    const reader=new FileReader(); reader.onload=ev=>{images[devices[idx].id]=ev.target.result;renderDeviceConfig();}; reader.readAsDataURL(file);
+  }));
+}
+function renderRatingConfig(){
+  const area=document.getElementById("ratingConfigArea");
+  const table=document.createElement("table");table.className="config-table";
+  table.innerHTML='<thead><tr><th>評価ID</th><th>評価項目名</th><th>説明</th><th>操作</th></tr></thead><tbody></tbody>';
+  const tbody=table.querySelector("tbody");
+  ratingItems.forEach((r,idx)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-rating-field="id" data-index="${idx}" value="${escapeAttr(r.id)}"></td><td><input data-rating-field="label" data-index="${idx}" value="${escapeAttr(r.label)}"></td><td><textarea data-rating-field="sub" data-index="${idx}">${escapeHTML(r.sub)}</textarea></td><td><button class="secondary" onclick="moveRatingItem(${idx},-1)">上へ</button> <button class="secondary" onclick="moveRatingItem(${idx},1)">下へ</button> <button class="secondary" onclick="duplicateRatingItem(${idx})">複製</button> <button class="danger" onclick="removeRatingItem(${idx})">削除</button></td>`;tbody.appendChild(tr);});
+  area.innerHTML="";area.appendChild(table);
+  area.querySelectorAll("[data-rating-field]").forEach(el=>el.addEventListener("input",e=>{ratingItems[Number(e.target.dataset.index)][e.target.dataset.ratingField]=e.target.value;}));
+}
+function nextDeviceId(){let n=devices.length+1;while(devices.some(d=>d.id===`D${String(n).padStart(2,"0")}`))n++;return `D${String(n).padStart(2,"0")}`;}
+function nextRatingId(){let n=ratingItems.length+1;while(ratingItems.some(r=>r.id===`R${String(n).padStart(2,"0")}`))n++;return `R${String(n).padStart(2,"0")}`;}
+function addDevice(){devices.push({id:nextDeviceId()});renderDeviceConfig();}
+function duplicateDevice(i){devices.splice(i+1,0,{id:nextDeviceId()});renderDeviceConfig();}
+function removeDevice(i){if(confirm("削除しますか？")){delete images[devices[i].id];devices.splice(i,1);renderDeviceConfig();}}
+function addRatingItem(){ratingItems.push({id:nextRatingId(),label:"新しい評価項目",sub:""});renderRatingConfig();}
+function duplicateRatingItem(i){const id=nextRatingId();ratingItems.splice(i+1,0,{...ratingItems[i],id,label:ratingItems[i].label+" コピー"});renderRatingConfig();}
+function removeRatingItem(i){if(confirm("削除しますか？")){ratingItems.splice(i,1);renderRatingConfig();}}
+function moveRatingItem(i,d){const j=i+d;if(j<0||j>=ratingItems.length)return;[ratingItems[i],ratingItems[j]]=[ratingItems[j],ratingItems[i]];renderRatingConfig();}
+function saveConfigAndBack(){if(devices.length<2)return alert("デバイスは2個以上にしてください。");if(ratingItems.length<1)return alert("評価項目は1個以上にしてください。");backToStart();}
+
+function startExperiment(){
+  if(!participantId.value.trim())return alert("参加者IDを入力してください。");
+  if(devices.length<2)return alert("デバイスは2個以上必要です。");
+  baseOrder=devices.map(d=>d.id);
+  if(initialOrderMode.value==="random")baseOrder=shuffle(baseOrder);
+  ratings={};
+  renderRatingGrid();
+  showScreen("screenRating");
+}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function renderRatingGrid(){
+  const grid=ratingGrid;
+  grid.style.gridTemplateColumns=`minmax(150px,1.1fr) repeat(${ratingItems.length},minmax(150px,1fr))`;
+  grid.innerHTML="";
+
+  const corner=document.createElement("div");
+  corner.className="rating-cell header corner";
+  corner.textContent="デバイス";
+  grid.appendChild(corner);
+
+  ratingItems.forEach(item=>{
+    const c=document.createElement("div");
+    c.className="rating-cell header";
+    c.innerHTML=`<div class="rating-label"><span class="main">${escapeHTML(item.label)}</span><span class="sub">${escapeHTML(item.sub)}</span></div>`;
+    grid.appendChild(c);
+  });
+
+  baseOrder.forEach(deviceId=>{
+    const rowHead=document.createElement("div");
+    rowHead.className="rating-cell row-head";
+    rowHead.innerHTML=`<div class="rating-photo">${images[deviceId]?`<img src="${images[deviceId]}" alt="">`:""}</div>`;
+    grid.appendChild(rowHead);
+
+    ratingItems.forEach(item=>{
+      const cell=document.createElement("div");
+      cell.className="rating-cell";
+      const key=`${item.id}__${deviceId}`;
+      const cur=ratings[item.id]?.[deviceId]||"";
+      cell.innerHTML=`<div class="scale-box">${[1,2,3,4,5].map(v=>`<label><input type="radio" name="${key}" value="${v}" ${String(cur)===String(v)?"checked":""} onchange="setRating('${escapeAttr(item.id)}','${escapeAttr(deviceId)}',${v})"><span>${v}</span></label>`).join("")}</div>`;
+      grid.appendChild(cell);
+    });
+  });
+}
+function setRating(itemId,deviceId,value){if(!ratings[itemId])ratings[itemId]={};ratings[itemId][deviceId]=value;}
+function fillMissingRatingsWithNeutral(){ratingItems.forEach(item=>{if(!ratings[item.id])ratings[item.id]={};baseOrder.forEach(id=>{if(!ratings[item.id][id])ratings[item.id][id]=3;});});renderRatingGrid();}
+
+function finishExperiment(){
+  const missing=[];ratingItems.forEach(item=>baseOrder.forEach(id=>{if(!ratings[item.id]?.[id])missing.push(1);}));
+  if(missing.length&&!confirm(`未入力が ${missing.length} 個あります。このまま進みますか？`))return;
+  const data=buildCurrentResponse();
+  storedResponses.push(data);
+  saveStoredResponses();
+  preview.textContent=JSON.stringify(data,null,2);
+  freeComment.value="";
+  updateStoredCounts();
+  if(autoNext.checked){
+    alert(`回答を保存しました。現在 ${storedResponses.length} 人分です。`);
+    nextParticipant();
+  }else{
+    showScreen("screenFinal");
+  }
+}
+
+function buildCurrentResponse(){
+  return{
+    app_version:"rating_device_rows_metric_columns_2026-06-29",
+    participant_id:participantId.value.trim(),
+    date:date.value,
+    presentation_mode:presentationMode.value,
+    experimenter_memo:experimenterMemo.value,
+    initial_order_mode:initialOrderMode.value,
+    base_order:[...baseOrder],
+    free_comment:freeComment.value,
+    saved_at:new Date().toISOString(),
+    devices:devices.map(d=>({id:d.id})),
+    rating_items:ratingItems.map(r=>({id:r.id,label:r.label,sub:r.sub})),
+    ratings:JSON.parse(JSON.stringify(ratings))
+  };
+}
+function updateLastComment(){
+  if(storedResponses.length===0)return;
+  storedResponses[storedResponses.length-1].free_comment=freeComment.value;
+  saveStoredResponses();
+  preview.textContent=JSON.stringify(storedResponses[storedResponses.length-1],null,2);
+}
+function nextParticipant(){
+  participantId.value="";
+  freeComment.value="";
+  baseOrder=[];
+  ratings={};
+  showScreen("screenStart");
+  participantId.focus();
+}
+function loadStoredResponses(){
+  try{storedResponses=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}
+  catch(e){storedResponses=[];}
+}
+function saveStoredResponses(){localStorage.setItem(STORAGE_KEY,JSON.stringify(storedResponses));}
+function updateStoredCounts(){
+  const txt=`${storedResponses.length}人分`;
+  ["storedCountStart","storedCountFinal","storedCountExport"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=txt;});
+  if(document.getElementById("allPreview")) allPreview.textContent=JSON.stringify(storedResponses,null,2);
+}
+function clearStoredData(){
+  if(!confirm("ブラウザ内に蓄積した全参加者データを消去しますか？ CSV保存前の場合、復元できません。"))return;
+  storedResponses=[];
+  saveStoredResponses();
+  updateStoredCounts();
+}
+
+function filenameBase(){const d=(date.value||new Date().toISOString().slice(0,10));return `pretest_rating_all_${d}`;}
+function downloadBothCSV(){downloadLongCSV();setTimeout(downloadWideCSV,250);}
+function downloadLongCSV(){
+  const rows=[["app_version","participant_id","date","presentation_mode","item_id","item_label","device_id","rating_1_to_5","base_order","experimenter_memo","free_comment","saved_at"]];
+  storedResponses.forEach(resp=>{
+    resp.rating_items.forEach(item=>{
+      resp.base_order.forEach(deviceId=>{
+        rows.push([resp.app_version,resp.participant_id,resp.date,resp.presentation_mode,item.id,item.label,deviceId,resp.ratings[item.id]?.[deviceId]||"",resp.base_order.join(">"),resp.experimenter_memo,resp.free_comment,resp.saved_at]);
+      });
+    });
+  });
+  downloadCSVRows(rows,filenameBase()+"_long.csv");
+}
+function downloadWideCSV(){
+  const allItemLabels=[];
+  storedResponses.forEach(resp=>resp.rating_items.forEach(item=>{if(!allItemLabels.includes(item.label))allItemLabels.push(item.label);}));
+  const rows=[["app_version","participant_id","date","presentation_mode","device_id","base_order","experimenter_memo","free_comment","saved_at",...allItemLabels]];
+  storedResponses.forEach(resp=>{
+    resp.base_order.forEach(deviceId=>{
+      const row=[resp.app_version,resp.participant_id,resp.date,resp.presentation_mode,deviceId,resp.base_order.join(">"),resp.experimenter_memo,resp.free_comment,resp.saved_at];
+      allItemLabels.forEach(label=>{
+        const item=resp.rating_items.find(x=>x.label===label);
+        row.push(item ? (resp.ratings[item.id]?.[deviceId]||"") : "");
+      });
+      rows.push(row);
+    });
+  });
+  downloadCSVRows(rows,filenameBase()+"_wide.csv");
+}
+function downloadCSVRows(rows,filename){
+  const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\r\n");
+  downloadFile(csv,filename,"text/csv;charset=utf-8");
+}
+function downloadAllJSON(){downloadFile(JSON.stringify(storedResponses,null,2),filenameBase()+".json","application/json;charset=utf-8");}
+async function copyJSON(){await navigator.clipboard.writeText(JSON.stringify(storedResponses,null,2));alert("JSONをコピーしました。");}
+function downloadFile(content,filename,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
+
+function buildConfig(){return{app_config_version:"2026-06-29",devices:devices.map(d=>({id:d.id})),rating_items:ratingItems};}
+function downloadConfigJSON(){downloadFile(JSON.stringify(buildConfig(),null,2),"pretest_rating_app_config.json","application/json;charset=utf-8");}
+function loadConfigJSON(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const c=JSON.parse(e.target.result);
+      if(Array.isArray(c.devices))devices=c.devices.map(d=>({id:d.id}));
+      if(Array.isArray(c.rating_items))ratingItems=c.rating_items;
+      images={};
+      renderConfig();
+      alert("設定を読み込みました。写真は再設定してください。");
+    }catch(err){alert("設定JSONを読み込めませんでした。");}
+  };
+  reader.readAsText(file);
+}
+function escapeHTML(str){return String(str??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[s]));}
+function escapeAttr(str){return escapeHTML(str).replaceAll("\n"," ");}
+</script>
+</body>
+</html>
